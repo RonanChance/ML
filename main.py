@@ -8,33 +8,42 @@ import numpy as np
 import pickle 
 import time
 
-NAME = "Cats-vs-dogs-cn-64x2-{}".format(int(time.time()))
-
-tensorboard = TensorBoard(log_dir='logs/{}'.format(NAME))
-
 X = pickle.load(open("X.pickle", "rb"))
 y = pickle.load(open("y.pickle", "rb"))
 
 X = np.array(X/255.0)
 y = np.array(y)
 
-model = Sequential()
+dense_layers = [0, 1, 2]
+layer_sizes = [32, 64, 128]
+conv_layers = [1, 2, 3]
 
-model.add(Conv2D(64, (3,3), input_shape = X.shape[1:]))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2,2)))
+for dense_layer in dense_layers:
+    for layer_size in layer_sizes:
+        for conv_layer in conv_layers:
+            NAME = "{}-conv-{}-nodes-{}-dense={}".format(conv_layer, layer_size, dense_layer, int(time.time()))
+            tensorboard = TensorBoard(log_dir='logs/{}'.format(NAME))
+            print(NAME)
 
-model.add(Conv2D(64, (3,3), input_shape = X.shape[1:]))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2,2)))
+            model = Sequential()
 
-model.add(Flatten())
-model.add(Dense(64))
-model.add(Activation("relu"))
+            model.add(Conv2D(64, (3,3), input_shape = X.shape[1:]))
+            model.add(Activation("relu"))
+            model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
+            for l in range(conv_layer-1):
+                model.add(Conv2D(64, (3,3), input_shape = X.shape[1:]))
+                model.add(Activation("relu"))
+                model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.compile(loss="binary_crossentropy", optimizer="adam", metrics=['accuracy'])
+            model.add(Flatten())
+            for l in range(dense_layer):
+                model.add(Dense(layer_size))
+                model.add(Activation("relu"))
 
-model.fit(X, y, batch_size=32, epochs=3, validation_split=0.1, callbacks=[tensorboard])
+            model.add(Dense(1))
+            model.add(Activation('sigmoid'))
+
+            model.compile(loss="binary_crossentropy", optimizer="adam", metrics=['accuracy'])
+
+            model.fit(X, y, batch_size=32, epochs=3, validation_split=0.1, callbacks=[tensorboard])
